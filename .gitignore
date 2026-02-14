@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+.venv/
+*.pyc
+uv.lock
+
+# Project Specific
+tmp_onetab_db/
+*_OneTabOutput.csv
+
+# IDE
+.idea/
+.vscode/

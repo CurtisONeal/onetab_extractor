@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --quiet
 # /// script
 # dependencies = [
-#   "plyvel",
+#   "plyvel-ci",
 #   "rich",
 # ]
 # requires-python = ">=3.12"
@@ -72,9 +72,18 @@ def main():
         tabs_to_export = []
         for group in state_data.get('tabGroups', []):
             label = group.get('label') or "Untitled Group"
+            create_date = group.get('createDate')
+            # Convert milliseconds timestamp to readable date
+            date_saved = datetime.fromtimestamp(create_date / 1000).strftime('%Y-%m-%d %H:%M:%S') if create_date else ''
+            color = group.get('color', '')
+            group_type = group.get('groupType', '')
+
             for tab in group.get('tabsMeta', []):
                 tabs_to_export.append({
                     'Group': label,
+                    'Date Saved': date_saved,
+                    'Color': color,
+                    'Group Type': group_type,
                     'Title': tab.get('title', 'No Title'),
                     'URL': tab.get('url', '')
                 })
@@ -86,19 +95,21 @@ def main():
 
         if not args.dryrun:
             with open(full_output_path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=['Group', 'Title', 'URL'])
+                writer = csv.DictWriter(f, fieldnames=['Group', 'Date Saved', 'Color', 'Group Type', 'Title', 'URL'])
                 writer.writeheader()
                 writer.writerows(tabs_to_export)
             console.print(f"[bold green]Success![/bold green] Exported to [underline]{full_output_path}[/underline]")
 
         if args.print:
-            table = Table(title="OneTab Extraction Preview")
-            table.add_column("Group", style="magenta")
-            table.add_column("Title", style="cyan")
-            table.add_column("URL", style="green", no_wrap=True)
+            table = Table(title="OneTab Extraction Preview", expand=False)
+            table.add_column("Group", style="magenta", max_width=20, overflow="fold")
+            table.add_column("Date Saved", style="yellow", max_width=19)
+            table.add_column("Color", style="blue", max_width=10)
+            table.add_column("Title", style="cyan", max_width=30, overflow="fold")
+            table.add_column("URL", style="green", max_width=40, overflow="fold")
 
             for item in tabs_to_export[:20]:  # Preview first 20
-                table.add_row(item['Group'], item['Title'], item['URL'])
+                table.add_row(item['Group'], item['Date Saved'], item['Color'], item['Title'], item['URL'])
 
             console.print(table)
             if len(tabs_to_export) > 20:

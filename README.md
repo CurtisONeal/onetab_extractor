@@ -19,7 +19,7 @@ If you move this project to a new machine or use a different macOS user account,
 ### 1. File Paths (`onetab_extractor.py`)
 Within the script, two main paths are defaulted to a specific user profile:
 * **`--path`**: Defaults to `~/Library/Application Support/Google/Chrome/Default/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall`. If you use a different Chrome profile (e.g., "Profile 1"), this must be updated in the code or passed as a flag.
-* **`--dir`**: Defaults to `~/OneTabExtractor`. Update this to match your absolute project directory.
+* **`--dir`**: Defaults to the script's directory. You can override this with the `-d` or `--dir` flag.
 
 ### 2. Build Paths (`pyproject.toml`)
 The `uv` configuration contains hardcoded paths for the C++ compiler to find Homebrew libraries:
@@ -27,7 +27,7 @@ The `uv` configuration contains hardcoded paths for the C++ compiler to find Hom
 
 ### 3. Shell Alias (`.zshrc`)
 The alias used to call the script relies on an absolute path to the project directory:
-* `alias getOneTab="uv --directory /Users/curtisoneal/OneTabExtractor run onetab_extractor.py"`
+* `alias getOneTab="uv --directory /Users/curtisoneal/OneTabExtractor/shortcut run onetab_extractor.py"`
 * **Action**: Update `/Users/curtisoneal/` to your actual macOS username.
 
 ---

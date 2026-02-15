@@ -31,7 +31,7 @@ def main():
 
     # Output configuration
     parser.add_argument('-o', '--output', type=str, help='CSV filename')
-    parser.add_argument('-d', '--dir', type=str, default='~/OneTabExtractor', help='Output directory')
+    parser.add_argument('-d', '--dir', type=str, default=os.path.dirname(os.path.abspath(__file__)), help='Output directory')
 
     # Flags
     parser.add_argument('-dr', '--dryrun', action='store_true', help='Count rows without exporting')

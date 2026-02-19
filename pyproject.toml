@@ -22,4 +22,5 @@ config-settings = { "build_ext" = "--include-dirs=/usr/local/include:/opt/homebr
 [dependency-groups]
 dev = [
     "hatchling>=1.28.0",
+    "pytest>=8.0.0",
 ]

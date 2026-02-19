@@ -60,6 +60,11 @@ def extract_onetab(db_path: Path, tmp_dir: Path) -> List[Dict[str, Any]]:
             color = group.get('color', '')
 
             for tab in group.get('tabsMeta', []):
+                metadata_parts = []
+                if group.get('starred'): metadata_parts.append("starred")
+                if group.get('locked'): metadata_parts.append("locked")
+                metadata = ", ".join(metadata_parts)
+
                 extracted_data.append({
                     'Source': 'OneTab',
                     'Category/Group': label,
@@ -67,7 +72,7 @@ def extract_onetab(db_path: Path, tmp_dir: Path) -> List[Dict[str, Any]]:
                     'URL': tab.get('url', ''),
                     'Date Added': date_saved,
                     'Color': color,
-                    'Metadata': ''
+                    'Metadata': metadata
                 })
         db.close()
     except Exception as e:
@@ -127,7 +132,7 @@ def extract_bookmarks(bookmarks_path: Path) -> List[Dict[str, Any]]:
 
 def extract_open_tabs(sessions_path: Path) -> List[Dict[str, Any]]:
     """
-    Extracts open tabs from Chrome's Sessions directory by parsing SNSS files.
+    Extracts open tabs from Chrome's Sessions directory by parsing binary SNSS files.
     This is a cross-platform approach that doesn't rely on AppleScript.
     """
     extracted_data = []
@@ -136,69 +141,89 @@ def extract_open_tabs(sessions_path: Path) -> List[Dict[str, Any]]:
         console.print(f"[yellow]Sessions directory not found at {sessions_path}[/yellow]")
         return extracted_data
 
-    try:
-        # Find the most recent "Tabs_*" and "Session_*" files
-        tab_files = sorted(sessions_path.glob('Tabs_*'), key=lambda p: p.stat().st_mtime, reverse=True)
-        session_files = sorted(sessions_path.glob('Session_*'), key=lambda p: p.stat().st_mtime, reverse=True)
-        
-        if not tab_files:
-            return extracted_data
+    def read_str(data: bytes, offset: int, is_utf16: bool = False):
+        if offset + 4 > len(data): return None, offset
+        length = int.from_bytes(data[offset:offset+4], 'little')
+        offset += 4
+        byte_len = length * (2 if is_utf16 else 1)
+        if offset + byte_len > len(data): return None, offset
+        try:
+            encoding = 'utf-16' if is_utf16 else 'utf-8'
+            s = data[offset:offset+byte_len].decode(encoding, errors='ignore')
+        except:
+            s = ""
+        return s, offset + byte_len
 
-        # We'll parse the latest Tabs file which usually contains current tab metadata
-        # SNSS format is: 'SNSS' (4 bytes) + version (4 bytes) + [command_size (2 bytes) + command_id (1 byte) + data]
-        # Command ID 16 is typically "UpdateTabNavigation" which contains URL and Title
+    try:
+        # Check both Session_* and Tabs_* files
+        session_files = list(sessions_path.glob('Session_*')) + list(sessions_path.glob('Tabs_*'))
+        # Sort by modification time to get the most recent data
+        session_files.sort(key=lambda p: p.stat().st_mtime, reverse=True)
         
-        latest_tabs = tab_files[0]
-        with open(latest_tabs, 'rb') as f:
-            header = f.read(4)
-            if header != b'SNSS':
-                return extracted_data
-            f.read(4) # skip version
-            
-            while True:
-                size_buf = f.read(2)
-                if not size_buf:
-                    break
-                size = int.from_bytes(size_buf, 'little')
-                command_id = int.from_bytes(f.read(1), 'little')
-                data = f.read(size - 1)
+        seen_urls = set()
+
+        for snss_file in session_files[:3]: # Scan top 3 most recent files
+            with open(snss_file, 'rb') as f:
+                header = f.read(4)
+                if header != b'SNSS':
+                    continue
+                f.read(4) # skip version
                 
-                if command_id == 16: # UpdateTabNavigation
-                    # Data layout: tab_id (4), index (4), url (string), title (pickle/string), ...
-                    # This is a bit simplified as the strings are prefixed with their length
-                    try:
-                        # Skip tab_id (4) and index (4)
-                        offset = 8
-                        url_len = int.from_bytes(data[offset:offset+1], 'little')
-                        offset += 1
-                        url = data[offset:offset+url_len].decode('utf-8', errors='ignore')
-                        offset += url_len
-                        
-                        # Title usually follows. In SNSS it can be complex.
-                        # We search for the next string-like pattern or just use a placeholder
-                        title = "Open Tab"
-                        if offset < len(data):
-                            title_len = int.from_bytes(data[offset:offset+1], 'little')
-                            offset += 1
-                            title = data[offset:offset+title_len].decode('utf-16', errors='ignore')
-                        
-                        if url.startswith('http'):
-                            extracted_data.append({
-                                'Source': 'Open Tab',
-                                'Category/Group': 'Current Session',
-                                'Title': title.strip() or 'No Title',
-                                'URL': url.strip(),
-                                'Date Added': datetime.fromtimestamp(latest_tabs.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
-                                'Color': 'green',
-                                'Metadata': ''
-                            })
-                    except Exception:
-                        continue
+                while True:
+                    size_buf = f.read(2)
+                    if not size_buf:
+                        break
+                    size = int.from_bytes(size_buf, 'little')
+                    if size == 0: continue
+                    command_id = ord(f.read(1))
+                    data = f.read(size - 1)
+                    
+                    # We look for http strings anywhere in the command data
+                    # This is more robust than relying on specific command IDs which vary by Chrome version
+                    idx = data.find(b'http')
+                    while idx != -1:
+                        # Attempt to see if this is a length-prefixed string
+                        if idx >= 4:
+                            length = int.from_bytes(data[idx-4:idx], 'little')
+                            if length > 0 and length < 2048 and idx + length <= len(data):
+                                try:
+                                    url = data[idx:idx+length].decode('utf-8')
+                                    if url.startswith('http') and url not in seen_urls:
+                                        # Try to find a title. Usually titles follow URLs in these files.
+                                        # We look for a UTF-16 string shortly after the URL.
+                                        title = "Open Tab"
+                                        search_offset = idx + length
+                                        # Skip some bytes that might be referrer or other flags
+                                        for offset in range(search_offset, min(search_offset + 100, len(data) - 4)):
+                                            t_len = int.from_bytes(data[offset:offset+4], 'little')
+                                            if 0 < t_len < 500:
+                                                t_bytes = data[offset+4:offset+4+t_len*2]
+                                                if len(t_bytes) == t_len * 2:
+                                                    try:
+                                                        t_str = t_bytes.decode('utf-16').strip()
+                                                        if t_str and any(c.isalnum() for c in t_str):
+                                                            title = t_str
+                                                            break
+                                                    except: pass
+                                        
+                                        seen_urls.add(url)
+                                        extracted_data.append({
+                                            'Source': 'Open Tab',
+                                            'Category/Group': 'Current Session',
+                                            'Title': title,
+                                            'URL': url,
+                                            'Date Added': datetime.fromtimestamp(snss_file.stat().st_mtime).strftime('%Y-%m-%d %H:%M:%S'),
+                                            'Color': 'green',
+                                            'Metadata': f"file={snss_file.name}"
+                                        })
+                                except:
+                                    pass
+                        idx = data.find(b'http', idx + 1)
 
     except Exception as e:
-        console.print(f"[yellow]Note: Limited open tab extraction from SNSS:[/yellow] {e}")
+        console.print(f"[yellow]Note: SNSS extraction limited:[/yellow] {e}")
 
-    # Ensure at least one entry if something went wrong but we want to show it's working
+    # Fallback if no tabs were found
     if not extracted_data:
         extracted_data.append({
             'Source': 'Open Tab',
@@ -207,7 +232,7 @@ def extract_open_tabs(sessions_path: Path) -> List[Dict[str, Any]]:
             'URL': 'chrome://history',
             'Date Added': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'Color': 'blue',
-            'Metadata': 'SNSS parsed'
+            'Metadata': 'snss_fallback'
         })
     
     return extracted_data

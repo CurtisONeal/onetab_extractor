@@ -49,6 +49,16 @@ uv run onetab_extractor.py
 
 ---
 
+## 🧪 Testing
+The project includes a formal test suite in the `tests/` directory to ensure the extraction logic remains stable across changes.
+
+**Run All Tests:**
+```bash
+uv run pytest
+```
+
+---
+
 ## ⚠️ Configuration
 If you use a different macOS user or an Apple Silicon Mac, you may need to update paths.
 

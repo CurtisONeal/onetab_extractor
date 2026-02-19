@@ -4,6 +4,15 @@ This document tracks major improvements and fixes documented in the `../OneTabEx
 
 ## Summary of Improvements
 
+### 10. Formal Test Suite & Cleanup
+**Date:** 2026-02-19
+- **Restored Testing Logic:** After cleaning up temporary debug scripts, a formal `tests/` directory was created to house long-term verification logic.
+- **Unit Tests:** Implemented `tests/test_extractors.py` using `pytest`, covering:
+    - **Bookmarks:** Verifies JSON parsing and Chrome timestamp conversion.
+    - **OneTab:** Mocks LevelDB/Plyvel to test JSON state extraction and metadata (starred/locked).
+    - **Open Tabs (SNSS):** Verifies the binary SNSS parser against a mock binary session file.
+- **Project Structure:** Added `pytest` to development dependencies in `pyproject.toml`.
+
 ### 9. Pythonic Tab Extraction & CSV Metadata Refinement
 **Date:** 2026-02-18
 - **Cross-Platform Open Tabs:** Replaced macOS-specific AppleScript with a Pythonic parser for Chrome's binary SNSS (`Sessions`) files. This allows for live tab extraction on Windows/Linux without system automation.

@@ -1,11 +1,14 @@
 
 
-# OneTab Link Extractor (macOS)
+# "OneTab Link Extractor"
 
-This tool extracts saved tab groups from the OneTab Chrome extension's binary LevelDB database and exports them to a human-readable CSV format with rich terminal preview support.
+This tool extracts saved tab groups from your Chrome bookmarks, Chrome history, and ththe OneTab Chrome extension's binary LevelDB database (if you have the extension) and exports them and metatdata to a human-readable CSV format with rich terminal preview support.
+
+## This was meant as a fast script for myself
+Meaning it is not built as a tight python package with my preferred guardrails and format. After some quick tests on friends machines, I may refactor it -but it did the job I needed.
 
 ## 🚀 Current Project State
-We have successfully consolidated the repository, pulled in the LICENSE, and are now branching to implement new features:
+We have successfully consolidated the repository and all if the following should work on mac or pc assuming you have python 3.10+:
 - **Unified Extraction:** Moving beyond OneTab to also extract Chrome **Bookmarks** and **Open Tabs/Groups**.
 - **Data Normalization:** Combining all browser data into a single, standardized CSV format.
 

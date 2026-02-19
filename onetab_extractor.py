@@ -10,43 +10,46 @@
 import plyvel
 import json
 import csv
-import os
 import shutil
 import argparse
+from pathlib import Path
 from datetime import datetime
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
 console = Console()
-
+# Default path for OneTab LevelDB (macOS)
+DEFAULT_ONETAB_PATH = Path('~/Library/Application Support/Google/Chrome/Default/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall').expanduser()
 
 def main():
     parser = argparse.ArgumentParser(description='Extract OneTab links via uv.')
 
     # Path configuration
     parser.add_argument('--path', type=str,
-                        default='~/Library/Application Support/Google/Chrome/Default/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall',
+                        default=str(DEFAULT_ONETAB_PATH),
                         help='Source OneTab LevelDB path')
 
     # Output configuration
     parser.add_argument('-o', '--output', type=str, help='CSV filename')
-    parser.add_argument('-d', '--dir', type=str, default=os.path.dirname(os.path.abspath(__file__)), help='Output directory')
+    parser.add_argument('-d', '--dir', type=str, help='Output directory (defaults to current working directory)')
 
     # Flags
     parser.add_argument('-dr', '--dryrun', action='store_true', help='Count rows without exporting')
     parser.add_argument('-p', '--print', action='store_true', help='Pretty print the results to terminal')
+    parser.add_argument('--keep-tmp', action='store_true', help='Do not delete the temporary database copy')
 
     args = parser.parse_args()
 
     # Resolve paths
-    src_db_path = os.path.expanduser(args.path)
-    project_dir = os.path.expanduser(args.dir)
-    tmp_db_path = os.path.join(project_dir, 'tmp_onetab_db')
+    src_db_path = Path(args.path).expanduser()
+    # Use CWD for output if no directory specified via args
+    project_dir = Path(args.dir).resolve() if args.dir else Path.cwd()
+    tmp_db_path = project_dir / 'tmp_onetab_db'
 
     # 1. Live Copy Feature
     try:
-        if os.path.exists(tmp_db_path):
+        if tmp_db_path.exists():
             shutil.rmtree(tmp_db_path)
         shutil.copytree(src_db_path, tmp_db_path)
     except Exception as e:
@@ -56,11 +59,11 @@ def main():
     # Default filename logic
     date_str = datetime.now().strftime('%Y_%m_%d')
     filename = args.output if args.output else f"{date_str}_OneTabOutput.csv"
-    full_output_path = os.path.join(project_dir, filename)
+    full_output_path = project_dir / filename
 
     try:
         # 2. Extraction Logic
-        db = plyvel.DB(tmp_db_path, create_if_missing=False)
+        db = plyvel.DB(str(tmp_db_path), create_if_missing=False)
         raw_state = db.get(b'state')
 
         if not raw_state:
@@ -120,9 +123,9 @@ def main():
     except Exception as e:
         console.print(f"[bold red]An error occurred:[/bold red] {e}")
     finally:
-        # Optional: Clean up the temp directory
-        # shutil.rmtree(tmp_db_path)
-        pass
+        # 4. Clean up the temp directory
+        if not args.keep_tmp and tmp_db_path.exists():
+            shutil.rmtree(tmp_db_path)
 
 
 if __name__ == "__main__":

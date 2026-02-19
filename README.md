@@ -80,87 +80,44 @@ The alias used to call the script relies on an absolute path to the project dire
 
 ---
 
-## Pre-requisites
+## 🛠 Troubleshooting & Technical Notes
+### Database Lock
+The script automatically creates a temporary copy of databases to avoid conflicts with Chrome. If Chrome is in the middle of a heavy write operation, the copy might fail; close Chrome if errors persist.
+
+### ImportError (Plyvel)
+If you see a `dlopen` error regarding "symbol not found," rebuild the environment:
+```bash
+LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync --reinstall-package plyvel-ci
+```
+
+### OneTab Database Locations
+OneTab data is identified by the extension ID `chphlpgkkbolifaimnlloiipkdnihall`. 
+
+**Primary Location (Default):**
+`~/Library/Application Support/Google/Chrome/Default/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall/`
+
+**Alternative Location (Older Chrome versions):**
+`~/Library/Application Support/Google/Chrome/Default/Local Storage/leveldb/`
+
+---
+
+## 🏗 Setup & Build
+This project uses **uv** for high-performance dependency management.
+
+### Pre-requisites
 * **Python**: Version 3.12 or higher.
-* **Homebrew Dependencies**: `plyvel-ci` requires LevelDB C++ headers and binaries to compile and link successfully.
+* **Homebrew Dependencies**: `plyvel-ci` requires LevelDB C++ headers and binaries.
     ```bash
     brew install leveldb
     ```
 
-# Setup & Build
-This project uses **uv** for high-performance dependency management.
-
-1.  **Initialize the Environment**:
-    ```bash
-    LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync
-    ```
-
-    > **Note**: The build flags ensure `plyvel-ci` links correctly against LevelDB. For Apple Silicon Macs, use `/opt/homebrew/lib` and `/opt/homebrew/include` instead.
-
-
-# Usage
-Run the script using the configured alias or `uv run`.
-
-* **Standard Export**: Generates a CSV in the project folder named `YYYY_MM_DD_OneTabOutput.csv`.
-    ```bash
-    getOneTab
-    ```
-
-### Command-Line Flags
-The script supports several flags to customize its behavior:
-
-| Flag | Long Form | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `--path` | `--path` | Source OneTab LevelDB path | `~/Library/Application Support/...` |
-| `-o` | `--output` | CSV filename | `YYYY_MM_DD_OneTabOutput.csv` |
-| `-d` | `--dir` | Output directory | Current Working Directory |
-| `-dr` | `--dryrun` | Count rows without exporting to CSV | `False` |
-| `-p` | `--print` | Pretty print a preview table to terminal | `False` |
-| | `--keep-tmp` | Do not delete the temporary database copy | `False` |
-
-### Examples
-
-* **Dry Run**: Counts the number of tabs and groups without creating a file.
-    ```bash
-    getOneTab -dr
-    ```
-* **Terminal Preview**: Displays a formatted table of the first 20 tabs.
-    ```bash
-    getOneTab -p
-    ```
-* **Custom Output**: Save to a specific file and directory.
-    ```bash
-    getOneTab -o my_tabs.csv -d ~/Desktop
-    ```
-
-## Troubleshooting
-* **Database Lock**: The script automatically creates a temporary copy in `tmp_onetab_db` to avoid conflicts with Chrome. If Chrome is in the middle of a heavy write operation, the copy might fail; close Chrome if errors persist.
-* **ImportError**: If you see a `dlopen` error regarding "symbol not found," rebuild the environment:
-    ```bash
-    LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync --reinstall-package plyvel-ci
-    ```
-
-## OneTab Database Locations
-
-> **Important**: OneTab data is identified by the extension ID `chphlpgkkbolifaimnlloiipkdnihall`. The database contains `.ldb` and `.log` files.
-
-### Primary Location (Default):
+### Initialize the Environment
+```bash
+LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync
 ```
-~/Library/Application Support/Google/Chrome/Default/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall/
-```
+*Note: For Apple Silicon Macs, use `/opt/homebrew/lib` and `/opt/homebrew/include` instead.*
 
-### Extension Files Location:
-```
-~/Library/Application Support/Google/Chrome/Default/Extensions/chphlpgkkbolifaimnlloiipkdnihall
-```
-
-### Alternative Location (Older Chrome versions):
-```
-~/Library/Application Support/Google/Chrome/Default/Local Storage/leveldb/
-```
-
-## Dependencies
-The project uses:
+## 📦 Dependencies
 - **plyvel-ci**: Maintained fork of plyvel for LevelDB access
 - **rich**: Terminal formatting and tables
 - **hatchling**: Build backend

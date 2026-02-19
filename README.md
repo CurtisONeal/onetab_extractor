@@ -8,20 +8,20 @@ This tool extracts browser data from multiple sources (OneTab, Bookmarks, and Op
 - **Unified Extraction:** Consolidates data from:
     - **OneTab Extension:** Tab groups and saved tabs from LevelDB.
     - **Chrome Bookmarks:** Hierarchical parsing of the JSON Bookmarks file.
-    - **Open Tabs (Live):** Captures all open tabs across ALL Chrome windows via AppleScript (macOS).
-    - **History & Search:** Extracts recent browsing history and specific Google/Chrome search terms from SQLite.
+    - **Open Tabs (Live):** Pythonic, cross-platform extraction by parsing Chrome's binary SNSS (Session) files.
+    - **History & Search:** Extracts recent browsing history and specific Google/Chrome search terms from SQLite with detailed behavioral metadata (transitions, sync status).
 - **Standardized Schema:** Exports to a consistent format for all sources.
 - **Rich Terminal UI:** Pretty-print previews with color-coded sources.
 
 ## Exported Data Structure
 The unified CSV export includes:
-- **Source**: Where the data came from (OneTab, Bookmark, Open Tab)
-- **Category/Group**: The tab group label or bookmark folder path
+- **Source**: Where the data came from (OneTab, Bookmark, Open Tab, History, Search)
+- **Category/Group**: The tab group label, bookmark folder path, or "Browsing History"
 - **Title**: Page title
 - **URL**: Full URL
-- **Date Added**: When the item was created/saved
+- **Date Added**: When the item was created/saved/visited
 - **Color**: Visual group color (if available)
-- **Metadata**: Source-specific extra data (JSON formatted, sparse)
+- **Metadata**: Source-specific extra data (comma-separated, e.g., `trans=typed, synced`)
 
 ## Usage
 Run the script using `uv run` or your configured alias.

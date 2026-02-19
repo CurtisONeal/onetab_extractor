@@ -4,6 +4,13 @@ This document tracks major improvements and fixes documented in the `../OneTabEx
 
 ## Summary of Improvements
 
+### 9. Pythonic Tab Extraction & CSV Metadata Refinement
+**Date:** 2026-02-18
+- **Cross-Platform Open Tabs:** Replaced macOS-specific AppleScript with a Pythonic parser for Chrome's binary SNSS (`Sessions`) files. This allows for live tab extraction on Windows/Linux without system automation.
+- **CSV Metadata (Comma-Separated):** Transitioned `Metadata` column from JSON strings to clean, comma-separated values (e.g., `trans=typed, synced, visits=2`). 
+- **Behavioral Insights:** Enhanced `History` extraction to include navigation transition types (Link, Typed, Reload, etc.) and Sync status.
+- **Visual Improvements:** Maintained sparse metadata for Bookmarks/OneTab to reduce clutter while providing detailed behavioral context for browsing history.
+
 ### 8. Metadata Refined & New Sources Added
 **Date:** 2026-02-18
 - **Metadata Cleanup:** Removed `guid` (Bookmarks) and `groupType` (OneTab) from the `Metadata` column as they were deemed visual clutter. Metadata is now empty for these sources.

@@ -4,6 +4,16 @@ This document tracks major improvements and fixes documented in the `../OneTabEx
 
 ## Summary of Improvements
 
+### 6. Unified Browser Data Extraction
+**Date:** 2026-02-18
+- **Refactor:** `onetab_extractor.py` has been completely refactored into a unified extractor.
+- **New Features:**
+    - **Bookmarks:** Added `extract_bookmarks()` to parse Chrome's JSON Bookmarks file.
+    - **Open Tabs:** Added `extract_open_tabs()` as a placeholder/skeleton for session extraction.
+    - **OneTab:** Refactored OneTab logic into `extract_onetab()`.
+- **Unified Schema:** All sources now export to a single CSV with columns: `Source`, `Category/Group`, `Title`, `URL`, `Date Added`, and `Metadata`.
+- **Architecture:** The script is now modular, allowing easy addition of more sources or improvements to existing ones (like full SNSS parsing for open tabs).
+
 ### 5. Repository Consolidation & Feature Planning
 **Date:** 2026-02-18
 - **Repository:** Merged `LICENSE` from remote `origin/main` into local `main` branch using `--allow-unrelated-histories`.

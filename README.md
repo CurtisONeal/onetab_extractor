@@ -1,34 +1,59 @@
 
 
-# OneTab Link Extractor (macOS)
+# Browser Data Extractor (macOS)
 
-This tool extracts saved tab groups from the OneTab Chrome extension's binary LevelDB database and exports them to a human-readable CSV format with rich terminal preview support.
+This tool extracts browser data from multiple sources (OneTab, Bookmarks, and Open Tabs) and exports them to a unified human-readable CSV format with rich terminal preview support.
 
-## 🚀 Current Project State
-We have successfully consolidated the repository, pulled in the LICENSE, and are now branching to implement new features:
-- **Unified Extraction:** Moving beyond OneTab to also extract Chrome **Bookmarks** and **Open Tabs/Groups**.
-- **Data Normalization:** Combining all browser data into a single, standardized CSV format.
+## 🚀 Features
+- **Unified Extraction:** Consolidates data from:
+    - **OneTab Extension:** Tab groups and saved tabs from LevelDB.
+    - **Chrome Bookmarks:** Hierarchical parsing of the JSON Bookmarks file.
+    - **Open Tabs:** Placeholder for current session extraction (SNSS parser pending).
+- **Standardized Schema:** Exports to a consistent format for all sources.
+- **Rich Terminal UI:** Pretty-print previews and progress reporting.
 
-## Exported Data
-1. The CSV export includes:
-- **Group**: Tab group name (or "Untitled Group")
-- **Date Saved**: When the tab group was created
-- **Color**: Color tag assigned in OneTab (if any)
-- **Group Type**: Type of tab group
+## Exported Data Structure
+The unified CSV export includes:
+- **Source**: Where the data came from (OneTab, Bookmark, Open Tab)
+- **Category/Group**: The tab group label or bookmark folder path
 - **Title**: Page title
 - **URL**: Full URL
-2. The csv will output the the location of the script. In my case this is:
-~/dev/gitrepos/personal/learning/OneTabExtractor/2026_02_15_OneTabOutput.csv
+- **Date Added**: When the item was created/saved
+- **Metadata**: Source-specific extra data (JSON formatted)
 
-# Initial Setup:
+## Usage
+Run the script using `uv run` or your configured alias.
 
-## ⚠️ Local Variable & Customization Concerns
-If you move this project to a new machine or use a different macOS user account, the following variables **must** be updated to ensure the script finds your data and the compiler finds the necessary libraries.
+```bash
+uv run onetab_extractor.py
+```
+
+### Command-Line Flags
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--onetab-path` | OneTab LevelDB path | Standard Chrome path |
+| `--bookmarks-path` | Chrome Bookmarks path | Standard Chrome path |
+| `--sessions-path` | Chrome Sessions path | Standard Chrome path |
+| `-o`, `--output` | CSV filename | `YYYY_MM_DD_UnifiedBrowserData.csv` |
+| `-d`, `--dir` | Output directory | Current Working Directory |
+| `-dr`, `--dryrun` | Count rows without exporting | `False` |
+| `-p`, `--print` | Pretty print a preview table | `False` |
+
+### Examples
+- **Full Preview**: `uv run onetab_extractor.py -p -dr`
+- **Custom Directory**: `uv run onetab_extractor.py -d ~/Downloads`
+
+---
+
+## ⚠️ Configuration
+If you use a different macOS user or an Apple Silicon Mac, you may need to update paths.
 
 ### 1. File Paths (`onetab_extractor.py`)
-Within the script, the main path is defaulted to a specific user profile using `pathlib.Path`:
-* **`--path`**: Defaults to the standard OneTab extension path in your home directory. This is now managed as a `Path` object in the code for easier configuration.
-* **`--dir`**: Defaults to the current working directory. You can override this with the `-d` or `--dir` flag.
+Within the script, paths are resolved relative to the Chrome profile.
+* **`--onetab-path`**: Defaults to the standard OneTab extension path.
+* **`--bookmarks-path`**: Defaults to the standard Chrome Bookmarks file.
+* **`--sessions-path`**: Defaults to the standard Chrome Sessions directory.
+* **`--dir`**: Defaults to the current working directory for output.
 
 ### 2. Build Paths (`pyproject.toml`)
 The `uv` configuration contains hardcoded paths for the C++ compiler to find Homebrew libraries:

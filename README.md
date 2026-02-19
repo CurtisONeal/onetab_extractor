@@ -4,6 +4,11 @@
 
 This tool extracts saved tab groups from the OneTab Chrome extension's binary LevelDB database and exports them to a human-readable CSV format with rich terminal preview support.
 
+## 🚀 Current Project State
+We have successfully consolidated the repository, pulled in the LICENSE, and are now branching to implement new features:
+- **Unified Extraction:** Moving beyond OneTab to also extract Chrome **Bookmarks** and **Open Tabs/Groups**.
+- **Data Normalization:** Combining all browser data into a single, standardized CSV format.
+
 ## Exported Data
 1. The CSV export includes:
 - **Group**: Tab group name (or "Untitled Group")

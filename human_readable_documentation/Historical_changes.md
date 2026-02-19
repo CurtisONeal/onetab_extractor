@@ -4,12 +4,14 @@ This document tracks major improvements and fixes documented in the `../OneTabEx
 
 ## Summary of Improvements
 
-### 7. Metadata Column Refined
+### 8. Metadata Refined & New Sources Added
 **Date:** 2026-02-18
-- **Schema Update:** Added a dedicated `Color` column to the unified CSV to promote frequently used metadata.
-- **Metadata Sparsity:** Refactored `Metadata` to be sparsely populated, only containing truly source-specific extra data (like `guid` for bookmarks or `groupType` for OneTab).
-- **Cleanup:** Empty metadata fields are now exported as empty strings rather than empty JSON objects.
-- **Open Tabs:** Updated the placeholder to be more informative and consistent with the new schema.
+- **Metadata Cleanup:** Removed `guid` (Bookmarks) and `groupType` (OneTab) from the `Metadata` column as they were deemed visual clutter. Metadata is now empty for these sources.
+- **Active Tab Extraction:** Implemented a new mechanism using AppleScript to capture real-time open tabs across all Chrome windows on macOS. This replaces the placeholder with actual live data.
+- **History & Search:** Added a new `extract_history()` function that pulls browsing history and specific search terms from Chrome's SQLite database.
+- **Unified Schema Expansion:** Integrated `History` and `Search` as new sources in the unified CSV, with orange/grey color coding in terminal previews.
+- **New Flags:** Added `--history-path` and `--history-limit` to customize history extraction.
+- **Architecture:** Transitioned from a purely file-based extraction to a hybrid approach (Files + System Automation via `subprocess`).
 
 ### 6. Unified Browser Data Extraction
 - **New Features:**

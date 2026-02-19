@@ -8,9 +8,10 @@ This tool extracts browser data from multiple sources (OneTab, Bookmarks, and Op
 - **Unified Extraction:** Consolidates data from:
     - **OneTab Extension:** Tab groups and saved tabs from LevelDB.
     - **Chrome Bookmarks:** Hierarchical parsing of the JSON Bookmarks file.
-    - **Open Tabs:** Placeholder for current session extraction (SNSS parser pending).
+    - **Open Tabs (Live):** Captures all open tabs across ALL Chrome windows via AppleScript (macOS).
+    - **History & Search:** Extracts recent browsing history and specific Google/Chrome search terms from SQLite.
 - **Standardized Schema:** Exports to a consistent format for all sources.
-- **Rich Terminal UI:** Pretty-print previews and progress reporting.
+- **Rich Terminal UI:** Pretty-print previews with color-coded sources.
 
 ## Exported Data Structure
 The unified CSV export includes:
@@ -35,6 +36,8 @@ uv run onetab_extractor.py
 | `--onetab-path` | OneTab LevelDB path | Standard Chrome path |
 | `--bookmarks-path` | Chrome Bookmarks path | Standard Chrome path |
 | `--sessions-path` | Chrome Sessions path | Standard Chrome path |
+| `--history-path` | Chrome History SQLite path | Standard Chrome path |
+| `--history-limit` | Max history items to extract | `500` |
 | `-o`, `--output` | CSV filename | `YYYY_MM_DD_UnifiedBrowserData.csv` |
 | `-d`, `--dir` | Output directory | Current Working Directory |
 | `-dr`, `--dryrun` | Count rows without exporting | `False` |

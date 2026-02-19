@@ -28,7 +28,7 @@ DEFAULT_BOOKMARKS_PATH = CHROME_BASE / 'Bookmarks'
 DEFAULT_SESSIONS_PATH = CHROME_BASE / 'Sessions'
 
 # Unified CSV structure columns
-FIELDNAMES = ['Source', 'Category/Group', 'Title', 'URL', 'Date Added', 'Metadata']
+FIELDNAMES = ['Source', 'Category/Group', 'Title', 'URL', 'Date Added', 'Color', 'Metadata']
 
 def extract_onetab(db_path: Path, tmp_dir: Path) -> List[Dict[str, Any]]:
     """Extracts data from OneTab LevelDB."""
@@ -54,8 +54,8 @@ def extract_onetab(db_path: Path, tmp_dir: Path) -> List[Dict[str, Any]]:
             create_date = group.get('createDate')
             date_saved = datetime.fromtimestamp(create_date / 1000).strftime('%Y-%m-%d %H:%M:%S') if create_date else ''
             
+            color = group.get('color', '')
             metadata = {
-                'color': group.get('color', ''),
                 'groupType': group.get('groupType', '')
             }
 
@@ -66,7 +66,8 @@ def extract_onetab(db_path: Path, tmp_dir: Path) -> List[Dict[str, Any]]:
                     'Title': tab.get('title', 'No Title'),
                     'URL': tab.get('url', ''),
                     'Date Added': date_saved,
-                    'Metadata': json.dumps(metadata)
+                    'Color': color,
+                    'Metadata': json.dumps(metadata) if any(metadata.values()) else ''
                 })
         db.close()
     except Exception as e:
@@ -110,6 +111,7 @@ def extract_bookmarks(bookmarks_path: Path) -> List[Dict[str, Any]]:
                     'Title': node.get('name', 'No Title'),
                     'URL': node.get('url', ''),
                     'Date Added': date_added,
+                    'Color': '',
                     'Metadata': json.dumps({'guid': node.get('guid', '')})
                 })
 
@@ -139,7 +141,8 @@ def extract_open_tabs(sessions_path: Path) -> List[Dict[str, Any]]:
         'Title': 'Chrome Session (Placeholder)',
         'URL': 'chrome://history',
         'Date Added': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-        'Metadata': json.dumps({'note': 'SNSS parser pending implementation'})
+        'Color': 'blue',
+        'Metadata': 'SNSS parser pending implementation'
     })
     
     return extracted_data

@@ -19,7 +19,8 @@ The unified CSV export includes:
 - **Title**: Page title
 - **URL**: Full URL
 - **Date Added**: When the item was created/saved
-- **Metadata**: Source-specific extra data (JSON formatted)
+- **Color**: Visual group color (if available)
+- **Metadata**: Source-specific extra data (JSON formatted, sparse)
 
 ## Usage
 Run the script using `uv run` or your configured alias.

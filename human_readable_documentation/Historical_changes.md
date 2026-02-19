@@ -4,9 +4,14 @@ This document tracks major improvements and fixes documented in the `../OneTabEx
 
 ## Summary of Improvements
 
-### 6. Unified Browser Data Extraction
+### 7. Metadata Column Refined
 **Date:** 2026-02-18
-- **Refactor:** `onetab_extractor.py` has been completely refactored into a unified extractor.
+- **Schema Update:** Added a dedicated `Color` column to the unified CSV to promote frequently used metadata.
+- **Metadata Sparsity:** Refactored `Metadata` to be sparsely populated, only containing truly source-specific extra data (like `guid` for bookmarks or `groupType` for OneTab).
+- **Cleanup:** Empty metadata fields are now exported as empty strings rather than empty JSON objects.
+- **Open Tabs:** Updated the placeholder to be more informative and consistent with the new schema.
+
+### 6. Unified Browser Data Extraction
 - **New Features:**
     - **Bookmarks:** Added `extract_bookmarks()` to parse Chrome's JSON Bookmarks file.
     - **Open Tabs:** Added `extract_open_tabs()` as a placeholder/skeleton for session extraction.

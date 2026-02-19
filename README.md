@@ -10,6 +10,7 @@ This tool extracts browser data from multiple sources (OneTab, Bookmarks, and Op
     - **Chrome Bookmarks:** Hierarchical parsing of the JSON Bookmarks file.
     - **Open Tabs (Live):** Pythonic, cross-platform extraction by parsing Chrome's binary SNSS (Session) files.
     - **History & Search:** Extracts recent browsing history and specific Google/Chrome search terms from SQLite with detailed behavioral metadata (transitions, sync status).
+- **Graceful Error Handling:** If any source (e.g., OneTab) is not installed or the database is missing, the script will simply skip it and continue to extract from all other available sources without failing.
 - **Standardized Schema:** Exports to a consistent format for all sources.
 - **Rich Terminal UI:** Pretty-print previews with color-coded sources.
 

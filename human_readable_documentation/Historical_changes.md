@@ -4,6 +4,12 @@ This document tracks major improvements and fixes documented in the `../OneTabEx
 
 ## Summary of Improvements
 
+### 12. Robustness Improvements & Graceful Skipping
+**Date:** 2026-02-19
+- **Error Handling:** Verified and documented the script's ability to handle missing browser data sources (OneTab, Bookmarks, Sessions, or History) gracefully. 
+- **Graceful Skipping:** If a database or file is missing (e.g., OneTab is not installed), the script prints a yellow warning and continues to extract data from all other available sources without failing.
+- **Verification:** Tested with non-existent paths to confirm zero-crash behavior across all extraction modules.
+
 ### 11. IDE Configuration Cleanup
 **Date:** 2026-02-19
 - **Environment Cleanup:** Removed redundant `.idea/` folders within the project root and the `temp_move_files/` directory to resolve IDE confusion.

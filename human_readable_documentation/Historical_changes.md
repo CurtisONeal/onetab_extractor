@@ -4,6 +4,12 @@ This document tracks major improvements and fixes documented in the `../OneTabEx
 
 ## Summary of Improvements
 
+### 11. IDE Configuration Cleanup
+**Date:** 2026-02-19
+- **Environment Cleanup:** Removed redundant `.idea/` folders within the project root and the `temp_move_files/` directory to resolve IDE confusion.
+- **Gitignore Maintenance:** Restored `.idea/` to the local `.gitignore` to maintain a clean repository while relying on global gitignore settings as a secondary layer.
+- **Verification:** Confirmed that the primary `.idea/` folder remains intact to preserve PyCharm project settings.
+
 ### 10. Formal Test Suite & Cleanup
 **Date:** 2026-02-19
 - **Restored Testing Logic:** After cleaning up temporary debug scripts, a formal `tests/` directory was created to house long-term verification logic.

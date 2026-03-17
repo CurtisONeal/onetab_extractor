@@ -1,29 +1,35 @@
-# OneTab Link Extractor
+# Chrome Data Extractor
 
-Extracts saved tab groups from the [OneTab](https://www.one-tab.com/) Chrome extension's LevelDB database and exports them to a CSV file with optional terminal preview.
+Exports Chrome **bookmarks**, **browsing history**, and **OneTab** saved tabs from all Chrome profiles into a single CSV file. Supports macOS, Linux, and Windows.
 
-Supports all Chrome profiles in one pass by default, and works on macOS, Linux, and Windows.
+---
+
+## What it extracts
+
+| Source | Data | Notes |
+| :--- | :--- | :--- |
+| **Bookmarks** | All bookmarks with full folder path | Primary |
+| **History** | All visited URLs ordered by most recent | Primary |
+| **OneTab** | Saved tab groups with labels and colors | Secondary — skipped if OneTab has migrated to IndexedDB (newer installs) |
 
 ---
 
 ## Prerequisites
 
 - **Python 3.12+**
-- **[uv](https://docs.astral.sh/uv/)** — handles the virtual environment and dependencies automatically
-- **LevelDB** headers/libraries (required to compile `plyvel-ci`)
+- **[uv](https://docs.astral.sh/uv/)**
+- **LevelDB** headers/libraries (needed to compile `plyvel-ci` for OneTab support)
 
   ```bash
   # macOS
   brew install leveldb
   ```
 
-  On Linux, install `libleveldb-dev` via your package manager. On Windows, `plyvel-ci` ships pre-built wheels so no extra step is needed.
+  On Linux, install `libleveldb-dev` via your package manager. On Windows, `plyvel-ci` ships pre-built wheels.
 
 ---
 
 ## Setup
-
-### 1. Clone and configure
 
 ```bash
 git clone <repo-url>
@@ -31,9 +37,9 @@ cd onetab_extractor
 cp .env.example .env
 ```
 
-Edit `.env` if you need to override any defaults (see [Configuration](#configuration) below). For most users on macOS the defaults work without any changes.
+Edit `.env` only if you need to override defaults — most users on macOS need no changes.
 
-### 2. Sync dependencies
+### Sync dependencies
 
 ```bash
 # Intel Mac / Linux
@@ -43,8 +49,6 @@ LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync
 LDFLAGS="-L/opt/homebrew/lib" CPPFLAGS="-I/opt/homebrew/include" uv sync
 ```
 
-> The build flags are needed so `plyvel-ci` links correctly against LevelDB. They are already encoded in `pyproject.toml` for both Homebrew prefixes, but passing them explicitly at sync time is the safest approach.
-
 ---
 
 ## Usage
@@ -53,43 +57,45 @@ LDFLAGS="-L/opt/homebrew/lib" CPPFLAGS="-I/opt/homebrew/include" uv sync
 uv run onetab_extractor.py [flags]
 ```
 
-By default the script scans **all Chrome profiles**, combines every tab into one CSV, and writes it to the current directory as `YYYY_MM_DD_OneTabOutput.csv`.
+Default behaviour: scans **all Chrome profiles**, exports bookmarks + history + OneTab (if available) into `YYYY_MM_DD_ChromeExport.csv` in the current directory.
 
 ### Common examples
 
 ```bash
-# Export all profiles (default behaviour)
+# Export everything (default)
 uv run onetab_extractor.py
 
-# Dry run — count tabs and groups without writing a file
+# Dry run — count rows by source without writing a file
 uv run onetab_extractor.py -dr
 
-# Terminal preview of the first 20 rows
+# Terminal preview of first 20 rows
 uv run onetab_extractor.py -p
 
-# Export to a specific file and directory
-uv run onetab_extractor.py -o my_tabs.csv -d ~/Desktop
+# Bookmarks only
+uv run onetab_extractor.py --no-history --no-onetab
 
-# Export only the Default profile
-uv run onetab_extractor.py --no-all-profiles
+# History only, single profile (Default)
+uv run onetab_extractor.py --no-bookmarks --no-onetab --no-all-profiles
 
-# Point at a non-standard Chrome directory
+# Save to a specific file and directory
+uv run onetab_extractor.py -o my_export.csv -d ~/Desktop
+
+# Point at a non-standard Chrome installation
 uv run onetab_extractor.py --chrome-dir "/Volumes/Backup/Chrome User Data"
-
-# Target one specific LevelDB path directly
-uv run onetab_extractor.py --path "~/Library/Application Support/Google/Chrome/Profile 1/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall"
 ```
 
 ### All flags
 
 | Flag | Description | Default |
 | :--- | :--- | :--- |
-| `--chrome-dir` | Chrome user data directory to scan for profiles | Platform default (see below) |
-| `--all-profiles` / `--no-all-profiles` | Scan all profiles vs. Default profile only | `--all-profiles` |
-| `--path` | Explicit path to a single OneTab LevelDB; bypasses profile discovery | — |
-| `-o`, `--output` | CSV filename | `YYYY_MM_DD_OneTabOutput.csv` |
+| `--chrome-dir` | Chrome user data directory | Platform default (see below) |
+| `--all-profiles` / `--no-all-profiles` | Scan all profiles vs. Default only | `--all-profiles` |
+| `--bookmarks` / `--no-bookmarks` | Include bookmarks | on |
+| `--history` / `--no-history` | Include browsing history | on |
+| `--onetab` / `--no-onetab` | Include OneTab data if available | on |
+| `-o`, `--output` | CSV filename | `YYYY_MM_DD_ChromeExport.csv` |
 | `-d`, `--dir` | Output directory | `OUTPUT_DIR` env var, or CWD |
-| `-dr`, `--dryrun` | Count tabs/groups without writing a file | off |
+| `-dr`, `--dryrun` | Count rows by source without writing a file | off |
 | `-p`, `--print` | Pretty-print first 20 rows to the terminal | off |
 | `--keep-tmp` | Keep temporary database copies after export | off |
 
@@ -118,15 +124,15 @@ Copy `.env.example` to `.env` and set any values you need. All are optional.
 
 ## CSV output
 
-Each row represents one saved tab. The `Profile` column contains the display name read from Chrome's `Preferences` file, or the folder name (`Profile 1`, `Profile 7`, etc.) if no name is found.
+Each row is one URL. The `Source` column identifies where it came from.
 
 | Column | Description |
 | :--- | :--- |
-| `Profile` | Chrome profile name or folder name |
-| `Group` | OneTab group label (or "Untitled Group") |
-| `Date Saved` | Timestamp the group was created (`YYYY-MM-DD HH:MM:SS`) |
-| `Color` | Color tag assigned in OneTab |
-| `Group Type` | Group type metadata from OneTab |
+| `Profile` | Chrome profile display name, or folder name (`Profile 1`, `Profile 7`, etc.) |
+| `Source` | `Bookmark`, `History`, or `OneTab` |
+| `Group` | Bookmark folder path (e.g. `Bookmarks Bar/Dev/Tools`), OneTab group label, or blank for history |
+| `Date` | Date added (bookmarks), last visited (history), or group created (OneTab) |
+| `Color` | OneTab color tag — blank for other sources |
 | `Title` | Page title |
 | `URL` | Full URL |
 
@@ -134,8 +140,11 @@ Each row represents one saved tab. The `Profile` column contains the display nam
 
 ## Troubleshooting
 
+**OneTab shows "migrated to IndexedDB — skipping"**
+Newer versions of OneTab moved their storage from LevelDB to IndexedDB. IndexedDB support is not yet implemented. The rest of the export (bookmarks and history) still runs normally.
+
 **Database copy fails / Chrome lock error**
-The script copies the LevelDB before reading it to avoid conflicts with Chrome. If Chrome is mid-write, the copy may fail. Close Chrome and retry, or use `--keep-tmp` to inspect the copied database.
+The script copies all databases before reading to avoid conflicts with a running Chrome. Close Chrome and retry, or use `--keep-tmp` to inspect the copies.
 
 **`dlopen` / symbol not found error**
 Rebuild `plyvel-ci` with the correct Homebrew prefix:
@@ -148,22 +157,13 @@ LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync --reinstall-p
 LDFLAGS="-L/opt/homebrew/lib" CPPFLAGS="-I/opt/homebrew/include" uv sync --reinstall-package plyvel-ci
 ```
 
-**No OneTab data found**
-Verify the extension is installed and has data, then check the Chrome directory:
-
-```
-~/Library/Application Support/Google/Chrome/<profile>/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall/
-```
-
-The folder should contain `.ldb` and `.log` files.
-
 ---
 
 ## Dependencies
 
 | Package | Purpose |
 | :--- | :--- |
-| `plyvel-ci` | LevelDB access (maintained `plyvel` fork) |
+| `plyvel-ci` | LevelDB access for OneTab data (maintained `plyvel` fork) |
 | `python-dotenv` | `.env` file loading |
 | `rich` | Terminal formatting and preview tables |
 | `hatchling` | Build backend |

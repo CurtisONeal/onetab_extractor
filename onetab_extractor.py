@@ -3,6 +3,7 @@
 # dependencies = [
 #   "plyvel-ci",
 #   "rich",
+#   "python-dotenv",
 # ]
 # requires-python = ">=3.12"
 # ///
@@ -11,16 +12,42 @@ import plyvel
 import json
 import csv
 import shutil
+import sys
+import os
 import argparse
 from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
+load_dotenv()
+
 console = Console()
-# Default path for OneTab LevelDB (macOS)
-DEFAULT_ONETAB_PATH = Path('~/Library/Application Support/Google/Chrome/Default/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall').expanduser()
+
+ONETAB_EXTENSION_ID = 'chphlpgkkbolifaimnlloiipkdnihall'
+
+def get_default_onetab_path() -> Path:
+    """Return the default OneTab LevelDB path based on the current platform."""
+    platform = os.getenv('PLATFORM', '').lower()
+
+    # Allow explicit override via ONETAB_PATH env var
+    env_path = os.getenv('ONETAB_PATH', '')
+    if env_path:
+        return Path(env_path).expanduser()
+
+    # Auto-detect platform if not set in .env
+    if platform == 'windows' or (not platform and sys.platform == 'win32'):
+        local_app_data = os.getenv('LOCALAPPDATA', r'C:\Users\Default\AppData\Local')
+        return Path(local_app_data) / 'Google' / 'Chrome' / 'User Data' / 'Default' / 'Local Extension Settings' / ONETAB_EXTENSION_ID
+    elif platform == 'linux' or (not platform and sys.platform.startswith('linux')):
+        return Path('~/.config/google-chrome/Default/Local Extension Settings').expanduser() / ONETAB_EXTENSION_ID
+    else:  # mac (default)
+        return Path('~/Library/Application Support/Google/Chrome/Default/Local Extension Settings').expanduser() / ONETAB_EXTENSION_ID
+
+DEFAULT_ONETAB_PATH = get_default_onetab_path()
+DEFAULT_OUTPUT_DIR = os.getenv('OUTPUT_DIR', '')
 
 def main():
     parser = argparse.ArgumentParser(description='Extract OneTab links via uv.')
@@ -32,7 +59,9 @@ def main():
 
     # Output configuration
     parser.add_argument('-o', '--output', type=str, help='CSV filename')
-    parser.add_argument('-d', '--dir', type=str, help='Output directory (defaults to current working directory)')
+    parser.add_argument('-d', '--dir', type=str,
+                        default=DEFAULT_OUTPUT_DIR or None,
+                        help='Output directory (defaults to OUTPUT_DIR env var or current working directory)')
 
     # Flags
     parser.add_argument('-dr', '--dryrun', action='store_true', help='Count rows without exporting')

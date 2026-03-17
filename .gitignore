@@ -4,6 +4,9 @@ __pycache__/
 *.pyc
 uv.lock
 
+# Environment
+.env
+
 # Project Specific
 tmp_onetab_db/
 *_OneTabOutput.csv

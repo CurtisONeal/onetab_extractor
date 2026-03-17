@@ -70,6 +70,19 @@ def ms_epoch_to_str(ms: float) -> str:
         return ''
 
 
+def round_to_minute(date_str: str) -> str:
+    """Round a 'YYYY-MM-DD HH:MM:SS' string to the nearest minute."""
+    if not date_str:
+        return date_str
+    try:
+        dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+        if dt.second >= 30:
+            dt += timedelta(minutes=1)
+        return dt.replace(second=0).strftime('%Y-%m-%d %H:%M')
+    except ValueError:
+        return date_str
+
+
 # ---------------------------------------------------------------------------
 # Profile discovery
 # ---------------------------------------------------------------------------
@@ -470,6 +483,9 @@ def main():
     parser.add_argument('--bookmarks', action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument('--history', action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument('--onetab', action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument('--deduplicate', action=argparse.BooleanOptionalAction, default=True,
+                        help='Deduplicate rows by (Profile, Date, URL) keeping most recent '
+                             '(default: on). Use --no-deduplicate to keep all rows.')
 
     parser.add_argument('-o', '--output', type=str)
     parser.add_argument('-d', '--dir', type=str,
@@ -516,6 +532,24 @@ def main():
 
     # Sort most-recent-first; rows with no date sort to the end
     all_rows.sort(key=lambda r: r['Date'] or '0', reverse=True)
+
+    # Round all dates to the nearest minute (after sort to preserve order accuracy)
+    for row in all_rows:
+        row['Date'] = round_to_minute(row['Date'])
+
+    # Deduplicate by (Profile, Date, URL) — first-seen wins = most recent wins
+    if args.deduplicate:
+        seen: set[tuple] = set()
+        deduped = []
+        for row in all_rows:
+            key = (row['Profile'], row['Date'], row['URL'])
+            if key not in seen:
+                seen.add(key)
+                deduped.append(row)
+        before = len(all_rows)
+        all_rows = deduped
+        console.print(f'  deduplication removed [cyan]{before - len(all_rows)}[/cyan] rows '
+                      f'({len(all_rows)} remaining)')
 
     if args.dryrun:
         source_counts: dict[str, int] = {}

@@ -2,14 +2,20 @@
 __pycache__/
 .venv/
 *.pyc
+*.pyo
+*.pyd
 uv.lock
 
 # Environment
 .env
 
-# Project Specific
-tmp_onetab_db/
-*_OneTabOutput.csv
+# Project output
+*_ChromeExport.csv
+tmp_onetab_*/
+tmp_history_*/
+
+# macOS
+.DS_Store
 
 # IDE
 .idea/

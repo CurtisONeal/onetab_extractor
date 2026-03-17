@@ -1,130 +1,169 @@
+# OneTab Link Extractor
 
+Extracts saved tab groups from the [OneTab](https://www.one-tab.com/) Chrome extension's LevelDB database and exports them to a CSV file with optional terminal preview.
 
-# "OneTab Link Extractor"
-
-This tool extracts saved tab groups from your Chrome bookmarks, Chrome history, and ththe OneTab Chrome extension's binary LevelDB database (if you have the extension) and exports them and metatdata to a human-readable CSV format with rich terminal preview support.
-
-## This was meant as a fast script for myself
-Meaning it is not built as a tight python package with my preferred guardrails and format. After some quick tests on friends machines, I may refactor it -but it did the job I needed.
-
-## 🚀 Current Project State
-We have successfully consolidated the repository and all if the following should work on mac or pc assuming you have python 3.10+:
-- **Unified Extraction:** Moving beyond OneTab to also extract Chrome **Bookmarks** and **Open Tabs/Groups**.
-- **Data Normalization:** Combining all browser data into a single, standardized CSV format.
-
-## Exported Data
-1. The CSV export includes:
-- **Group**: Tab group name (or "Untitled Group")
-- **Date Saved**: When the tab group was created
-- **Color**: Color tag assigned in OneTab (if any)
-- **Group Type**: Type of tab group
-- **Title**: Page title
-- **URL**: Full URL
-2. The csv will output the the location of the script. In my case this is:
-~/dev/gitrepos/personal/learning/OneTabExtractor/2026_02_15_OneTabOutput.csv
-
-# Initial Setup:
-
-## ⚠️ Local Variable & Customization Concerns
-If you move this project to a new machine or use a different macOS user account, the following variables **must** be updated to ensure the script finds your data and the compiler finds the necessary libraries.
-
-### 1. File Paths (`onetab_extractor.py`)
-Within the script, the main path is defaulted to a specific user profile using `pathlib.Path`:
-* **`--path`**: Defaults to the standard OneTab extension path in your home directory. This is now managed as a `Path` object in the code for easier configuration.
-* **`--dir`**: Defaults to the current working directory. You can override this with the `-d` or `--dir` flag.
-
-### 2. Build Paths (`pyproject.toml`)
-The `uv` configuration contains hardcoded paths for the C++ compiler to find Homebrew libraries:
-* **`--include-dirs` / `--library-dirs`**: Currently set to `/usr/local/include` and `/usr/local/lib` for Intel Macs. If moving to an Apple Silicon (M1/M2/M3) Mac, these usually change to `/opt/homebrew/include` and `/opt/homebrew/lib`.
-
-### 3. Shell Alias (`.zshrc`)
-The alias used to call the script relies on an absolute path to the project directory:
-* `alias getOneTab="uv --directory  /Users/curtisoneal/dev/gitrepos/personal/learning/OneTabExtractor run onetab_extractor.py"`
-* **Action**: Update `/Users/curtisoneal/` to your actual macOS username.
+Supports all Chrome profiles in one pass by default, and works on macOS, Linux, and Windows.
 
 ---
 
-## Pre-requisites
-* **Python**: Version 3.12 or higher.
-* **Homebrew Dependencies**: `plyvel-ci` requires LevelDB C++ headers and binaries to compile and link successfully.
-    ```bash
-    brew install leveldb
-    ```
+## Prerequisites
 
-# Setup & Build
-This project uses **uv** for high-performance dependency management.
+- **Python 3.12+**
+- **[uv](https://docs.astral.sh/uv/)** — handles the virtual environment and dependencies automatically
+- **LevelDB** headers/libraries (required to compile `plyvel-ci`)
 
-1.  **Initialize the Environment**:
-    ```bash
-    LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync
-    ```
+  ```bash
+  # macOS
+  brew install leveldb
+  ```
 
-    > **Note**: The build flags ensure `plyvel-ci` links correctly against LevelDB. For Apple Silicon Macs, use `/opt/homebrew/lib` and `/opt/homebrew/include` instead.
+  On Linux, install `libleveldb-dev` via your package manager. On Windows, `plyvel-ci` ships pre-built wheels so no extra step is needed.
 
+---
 
-# Usage
-Run the script using the configured alias or `uv run`.
+## Setup
 
-* **Standard Export**: Generates a CSV in the project folder named `YYYY_MM_DD_OneTabOutput.csv`.
-    ```bash
-    getOneTab
-    ```
+### 1. Clone and configure
 
-### Command-Line Flags
-The script supports several flags to customize its behavior:
+```bash
+git clone <repo-url>
+cd onetab_extractor
+cp .env.example .env
+```
 
-| Flag | Long Form | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `--path` | `--path` | Source OneTab LevelDB path | `~/Library/Application Support/...` |
-| `-o` | `--output` | CSV filename | `YYYY_MM_DD_OneTabOutput.csv` |
-| `-d` | `--dir` | Output directory | Current Working Directory |
-| `-dr` | `--dryrun` | Count rows without exporting to CSV | `False` |
-| `-p` | `--print` | Pretty print a preview table to terminal | `False` |
-| | `--keep-tmp` | Do not delete the temporary database copy | `False` |
+Edit `.env` if you need to override any defaults (see [Configuration](#configuration) below). For most users on macOS the defaults work without any changes.
 
-### Examples
+### 2. Sync dependencies
 
-* **Dry Run**: Counts the number of tabs and groups without creating a file.
-    ```bash
-    getOneTab -dr
-    ```
-* **Terminal Preview**: Displays a formatted table of the first 20 tabs.
-    ```bash
-    getOneTab -p
-    ```
-* **Custom Output**: Save to a specific file and directory.
-    ```bash
-    getOneTab -o my_tabs.csv -d ~/Desktop
-    ```
+```bash
+# Intel Mac / Linux
+LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync
+
+# Apple Silicon Mac
+LDFLAGS="-L/opt/homebrew/lib" CPPFLAGS="-I/opt/homebrew/include" uv sync
+```
+
+> The build flags are needed so `plyvel-ci` links correctly against LevelDB. They are already encoded in `pyproject.toml` for both Homebrew prefixes, but passing them explicitly at sync time is the safest approach.
+
+---
+
+## Usage
+
+```bash
+uv run onetab_extractor.py [flags]
+```
+
+By default the script scans **all Chrome profiles**, combines every tab into one CSV, and writes it to the current directory as `YYYY_MM_DD_OneTabOutput.csv`.
+
+### Common examples
+
+```bash
+# Export all profiles (default behaviour)
+uv run onetab_extractor.py
+
+# Dry run — count tabs and groups without writing a file
+uv run onetab_extractor.py -dr
+
+# Terminal preview of the first 20 rows
+uv run onetab_extractor.py -p
+
+# Export to a specific file and directory
+uv run onetab_extractor.py -o my_tabs.csv -d ~/Desktop
+
+# Export only the Default profile
+uv run onetab_extractor.py --no-all-profiles
+
+# Point at a non-standard Chrome directory
+uv run onetab_extractor.py --chrome-dir "/Volumes/Backup/Chrome User Data"
+
+# Target one specific LevelDB path directly
+uv run onetab_extractor.py --path "~/Library/Application Support/Google/Chrome/Profile 1/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall"
+```
+
+### All flags
+
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--chrome-dir` | Chrome user data directory to scan for profiles | Platform default (see below) |
+| `--all-profiles` / `--no-all-profiles` | Scan all profiles vs. Default profile only | `--all-profiles` |
+| `--path` | Explicit path to a single OneTab LevelDB; bypasses profile discovery | — |
+| `-o`, `--output` | CSV filename | `YYYY_MM_DD_OneTabOutput.csv` |
+| `-d`, `--dir` | Output directory | `OUTPUT_DIR` env var, or CWD |
+| `-dr`, `--dryrun` | Count tabs/groups without writing a file | off |
+| `-p`, `--print` | Pretty-print first 20 rows to the terminal | off |
+| `--keep-tmp` | Keep temporary database copies after export | off |
+
+---
+
+## Configuration
+
+Copy `.env.example` to `.env` and set any values you need. All are optional.
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `PLATFORM` | Force platform detection (`mac`, `linux`, `windows`) | Auto-detected |
+| `CHROME_DIR` | Chrome user data directory | Platform default (see below) |
+| `ONETAB_PATH` | Override path to a single OneTab LevelDB | Derived from `CHROME_DIR` |
+| `OUTPUT_DIR` | Default output directory for the CSV | Current working directory |
+
+### Default Chrome directories by platform
+
+| Platform | Path |
+| :--- | :--- |
+| macOS | `~/Library/Application Support/Google/Chrome` |
+| Linux | `~/.config/google-chrome` |
+| Windows | `%LOCALAPPDATA%\Google\Chrome\User Data` |
+
+---
+
+## CSV output
+
+Each row represents one saved tab. The `Profile` column contains the display name read from Chrome's `Preferences` file, or the folder name (`Profile 1`, `Profile 7`, etc.) if no name is found.
+
+| Column | Description |
+| :--- | :--- |
+| `Profile` | Chrome profile name or folder name |
+| `Group` | OneTab group label (or "Untitled Group") |
+| `Date Saved` | Timestamp the group was created (`YYYY-MM-DD HH:MM:SS`) |
+| `Color` | Color tag assigned in OneTab |
+| `Group Type` | Group type metadata from OneTab |
+| `Title` | Page title |
+| `URL` | Full URL |
+
+---
 
 ## Troubleshooting
-* **Database Lock**: The script automatically creates a temporary copy in `tmp_onetab_db` to avoid conflicts with Chrome. If Chrome is in the middle of a heavy write operation, the copy might fail; close Chrome if errors persist.
-* **ImportError**: If you see a `dlopen` error regarding "symbol not found," rebuild the environment:
-    ```bash
-    LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync --reinstall-package plyvel-ci
-    ```
 
-## OneTab Database Locations
+**Database copy fails / Chrome lock error**
+The script copies the LevelDB before reading it to avoid conflicts with Chrome. If Chrome is mid-write, the copy may fail. Close Chrome and retry, or use `--keep-tmp` to inspect the copied database.
 
-> **Important**: OneTab data is identified by the extension ID `chphlpgkkbolifaimnlloiipkdnihall`. The database contains `.ldb` and `.log` files.
+**`dlopen` / symbol not found error**
+Rebuild `plyvel-ci` with the correct Homebrew prefix:
 
-### Primary Location (Default):
-```
-~/Library/Application Support/Google/Chrome/Default/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall/
-```
+```bash
+# Intel Mac
+LDFLAGS="-L/usr/local/lib" CPPFLAGS="-I/usr/local/include" uv sync --reinstall-package plyvel-ci
 
-### Extension Files Location:
-```
-~/Library/Application Support/Google/Chrome/Default/Extensions/chphlpgkkbolifaimnlloiipkdnihall
+# Apple Silicon
+LDFLAGS="-L/opt/homebrew/lib" CPPFLAGS="-I/opt/homebrew/include" uv sync --reinstall-package plyvel-ci
 ```
 
-### Alternative Location (Older Chrome versions):
+**No OneTab data found**
+Verify the extension is installed and has data, then check the Chrome directory:
+
 ```
-~/Library/Application Support/Google/Chrome/Default/Local Storage/leveldb/
+~/Library/Application Support/Google/Chrome/<profile>/Local Extension Settings/chphlpgkkbolifaimnlloiipkdnihall/
 ```
+
+The folder should contain `.ldb` and `.log` files.
+
+---
 
 ## Dependencies
-The project uses:
-- **plyvel-ci**: Maintained fork of plyvel for LevelDB access
-- **rich**: Terminal formatting and tables
-- **hatchling**: Build backend
+
+| Package | Purpose |
+| :--- | :--- |
+| `plyvel-ci` | LevelDB access (maintained `plyvel` fork) |
+| `python-dotenv` | `.env` file loading |
+| `rich` | Terminal formatting and preview tables |
+| `hatchling` | Build backend |

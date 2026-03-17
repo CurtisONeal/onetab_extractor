@@ -10,7 +10,7 @@ Exports Chrome **bookmarks**, **browsing history**, and **OneTab** saved tabs fr
 | :--- | :--- | :--- |
 | **Bookmarks** | All bookmarks with full folder path | Primary |
 | **History** | All visited URLs ordered by most recent | Primary |
-| **OneTab** | Saved tab groups with labels and colors | Secondary — skipped if OneTab has migrated to IndexedDB (newer installs) |
+| **OneTab** | Saved tab groups with labels and colors | Secondary — supports both legacy LevelDB and newer IndexedDB formats |
 
 ---
 
@@ -57,12 +57,12 @@ LDFLAGS="-L/opt/homebrew/lib" CPPFLAGS="-I/opt/homebrew/include" uv sync
 uv run onetab_extractor.py [flags]
 ```
 
-Default behaviour: scans **all Chrome profiles**, exports bookmarks + history + OneTab (if available) into `YYYY_MM_DD_ChromeExport.csv` in the current directory.
+Default behaviour: scans **all Chrome profiles**, exports bookmarks + history + OneTab (if available), deduplicates by `(Profile, Date, URL)`, and writes `YYYY_MM_DD_ChromeExport.csv` in the current directory. Dates are rounded to the nearest minute.
 
 ### Common examples
 
 ```bash
-# Export everything (default)
+# Export everything (default — deduplication on)
 uv run onetab_extractor.py
 
 # Dry run — count rows by source without writing a file
@@ -70,6 +70,9 @@ uv run onetab_extractor.py -dr
 
 # Terminal preview of first 20 rows
 uv run onetab_extractor.py -p
+
+# Export all rows without deduplication
+uv run onetab_extractor.py --no-deduplicate
 
 # Bookmarks only
 uv run onetab_extractor.py --no-history --no-onetab
@@ -93,6 +96,7 @@ uv run onetab_extractor.py --chrome-dir "/Volumes/Backup/Chrome User Data"
 | `--bookmarks` / `--no-bookmarks` | Include bookmarks | on |
 | `--history` / `--no-history` | Include browsing history | on |
 | `--onetab` / `--no-onetab` | Include OneTab data if available | on |
+| `--deduplicate` / `--no-deduplicate` | Remove duplicate `(Profile, Date, URL)` rows, keeping most recent | on |
 | `-o`, `--output` | CSV filename | `YYYY_MM_DD_ChromeExport.csv` |
 | `-d`, `--dir` | Output directory | `OUTPUT_DIR` env var, or CWD |
 | `-dr`, `--dryrun` | Count rows by source without writing a file | off |
@@ -128,10 +132,10 @@ Each row is one URL. The `Source` column identifies where it came from.
 
 | Column | Description |
 | :--- | :--- |
-| `Profile` | Chrome profile display name, or folder name (`Profile 1`, `Profile 7`, etc.) |
+| `Profile` | Folder name + display name, e.g. `Profile 1 (Your Chrome)` — folder is always present for disambiguation |
 | `Source` | `Bookmark`, `History`, or `OneTab` |
 | `Group` | Bookmark folder path (e.g. `Bookmarks Bar/Dev/Tools`), OneTab group label, or blank for history |
-| `Date` | Date added (bookmarks), last visited (history), or group created (OneTab) |
+| `Date` | Date added (bookmarks), last visited (history), or group created (OneTab) — rounded to nearest minute (`YYYY-MM-DD HH:MM`) |
 | `Color` | OneTab color tag — blank for other sources |
 | `Title` | Page title |
 | `URL` | Full URL |
@@ -139,9 +143,6 @@ Each row is one URL. The `Source` column identifies where it came from.
 ---
 
 ## Troubleshooting
-
-**OneTab shows "migrated to IndexedDB — skipping"**
-Newer versions of OneTab moved their storage from LevelDB to IndexedDB. IndexedDB support is not yet implemented. The rest of the export (bookmarks and history) still runs normally.
 
 **Database copy fails / Chrome lock error**
 The script copies all databases before reading to avoid conflicts with a running Chrome. Close Chrome and retry, or use `--keep-tmp` to inspect the copies.
